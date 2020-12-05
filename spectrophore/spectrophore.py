@@ -116,7 +116,7 @@ def rotate(PARMS, COORD, ANGLES, ROTMAT, ENERGY, MINENERGY, BOXES, RESOLUTION):
             MINENERGY = np.minimum(ENERGY, MINENERGY)
         
     # Finish off
-    return(MINENERGY)
+    return(-100 * MINENERGY)
                     
 				
           
