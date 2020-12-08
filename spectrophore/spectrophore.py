@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# GPU support
+# Numba support
 from numba import njit
 
 # RDKit
