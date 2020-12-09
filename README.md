@@ -5,6 +5,13 @@ This module contains python code to calculate `spectrophores` from molecules. It
 The technology and its applications have been described in [*Journal of Cheminformatics* (2018) **10**, 9](https://jcheminf.biomedcentral.com/articles/10.1186/s13321-018-0268-9). The paper is also included in this distribution.
 
 
+The `spectrophore` code can be used in two ways:
+- As a standalone program to convert the molecules in a sd-file into their corresponding `spectrophores`;
+- As a `python` module to import in your own `python` code.
+
+In the following sections, both usages will be documented.
+
+
 ## Installation
 
 #### 1. Installation of RDKit and Numba
@@ -67,7 +74,57 @@ Check the installation by opening a `python` session and entering:
 ```
 
 
-## Basic usage
+## 1. Usage as a standalone program
+
+After installation, one should be able to use the `spectrophore.py` code as a standalone program to calculated `spectrophores` from a sd-file with molecules. You can find out where `spectrophore.py` is located by starting a `python` shell and typing:
+
+```python
+>>> from spectrophore import spectrophore
+>>> spectrophore.__file__
+'/Users/hans/anaconda3/envs/spectrophore/lib/python3.8/site-packages/spectrophore/spectrophore.py'
+````
+
+Either you can use this full path to call the `spectrophore.py` code, or you can add it to your $PATH environment variable.
+
+To use `spectrophore.py`, type the following on the command-line:
+
+```console
+> spectrophore.py -h
+```
+
+This will provide you with all details on how to calculate `spectrophores` from a sd-file:
+
+```console
+usage: spectrophore.py [-h] [-n {none,mean,all,std}] [-s {none,unique,mirror,all}] [-a {1,2,3,4,5,6,9,10,12,15,18,20,30,36,45,60,90,180}]
+                       [-r RESOLUTION] [-p MAX_WORKERS] -i INFILE -o OUTFILE
+
+Calculate spectrophores
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n {none,mean,all,std}, --norm {none,mean,all,std}
+                        normalization setting (default: none)
+  -s {none,unique,mirror,all}, --stereo {none,unique,mirror,all}
+                        stereo setting (default: none)
+  -a {1,2,3,4,5,6,9,10,12,15,18,20,30,36,45,60,90,180}, --accuracy {1,2,3,4,5,6,9,10,12,15,18,20,30,36,45,60,90,180}
+                        accuracy setting (default: 20)
+  -r RESOLUTION, --resolution RESOLUTION
+                        resolution setting (>0) (default: 3)
+  -p MAX_WORKERS, --np MAX_WORKERS
+                        number of processors to use; -1 is all processors (default: -1)
+
+required arguments:
+  -i INFILE, --in INFILE
+                        input sdf file (default: None)
+  -o OUTFILE, --out OUTFILE
+                        output spectrophore file (default: None)
+```
+
+
+
+## 2. Usage as a `python` module
+
+### 2.1. Introduction
 
 Once you have installed all required tools and the `uamc-spectrophore` package, you are ready to use the tool. In its most simple form, `spectrophores` can be calculated as follows:
 
@@ -213,9 +270,9 @@ Similarly, one can easily compare the `spectrophores` from two different molecul
 From the last example, it is clear that the actual `spectrophore` values may differ a lot depending on the type of molecule. Also, the absolute values are depending on the property type, with some properties leading to large values (e.g. shape deviation) and others very small. For this reason, a number of normalisation methods are provided as shown below.
 
 
-## Methods
+### 2.2. Module methods
 
-### `resolution()`
+#### `resolution()`
 
 The `resolution()` method controls the smallest distance between the molecule and the surrounding box. By default this value is set to 3.0 A. The `resolution()` can be specified at the moment of class creation, or later on using the `resolution()` method:
 
@@ -257,9 +314,9 @@ Calling the `resolution()` method without an argument returns the current resolu
 ```
 
 
-### `accuracy()`
+#### `accuracy()`
 
-The `accuracy()` method controls the angular stepsize by which the molecule is rotated within the cages. By default this value is set to 20°. This parameter can be modified either at class creation, or using the `accuracy()` method later on. The accuracy should be an integer fraction of 360, hence 360 modulus *accuracy* should be equal to 0. The smaller the accuracy value (meaning smaller angular stepsizes), the longer the computation time:
+The `accuracy()` method controls the angular stepsize by which the molecule is rotated within the cages. By default this value is set to 20°. This parameter can be modified either at class creation, or using the `accuracy()` method later on. The accuracy should be an integer fraction of 180, hence 180 modulus *accuracy* should be equal to 0. The smaller the accuracy value (meaning smaller angular stepsizes), the longer the computation time:
 
 ```python
 >>> calculator = spectrophore.SpectrophoreCalculator(accuracy = 20.0) # Default
@@ -291,7 +348,7 @@ Calling the `accuracy()` method without an argument returns the current accuracy
 
 
 
-### `normalization()`
+#### `normalization()`
 
 With the `normalization()` method, one can specify the type of `spectrophore` normalization. There are four possibilities:
 - `normalization("none")`: no normalization is applied and the `spectrophore` values are the raw calculated interaction energies (multiplied by -100),
@@ -376,7 +433,7 @@ The same holds true when comparing `spectrophores` from different conformations:
 ![Three conformations](exampleplot4.png)
 
 
-### `stereo()`
+#### `stereo()`
 
 The `stereo()` method specifies the kind of cages to be used. The reason for this is that some of the cages that are used to calculate `spectrophores` have a stereospecific distribution of the interaction points:
 
@@ -391,7 +448,8 @@ There are four possibilities:
 The differences between the corresponding data points of unique and mirror stereospecific `spectrophores` are very small and require very long calculation times to obtain a sufficiently high quality level. This increased quality level is triggered by the `accuracy` setting and will result in calculation times being increased by at least a factor 100. As a consequence, it is recommended to apply this increased accuracy only in combination with a limited number of molecules, and when the small differences between the stereospecific `spectrophores` are really critical. However, for the vast majority of virtual screening applications, this increased accuracy is not required as long as it is not the intention to draw conclusions about differences in the underlying molecular stereoselectivity. Non-stereospecific `spectrophores` will therefore suffice for most applications.
 
 
-## Interpreting `spectrophores`
+
+## 3. Interpreting `spectrophores`
 
 A `spectrophore` is a vector of real number and has a certain length. The length depends on the used `stereo` method and the number of properties. The standard setting uses a set of non-stereospecific probes in combination with four properties:
 - property 1: atomic partial charges
@@ -418,7 +476,7 @@ meaning that the first *n* values (with *n* being the number of probes) are calc
 
 
 
-## Reference and citation
+## 4. Reference and citation
 
 If you use the `spectrophore` technology in your own research work, please cite as follows:
 

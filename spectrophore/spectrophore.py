@@ -140,7 +140,7 @@ class SpectrophoreCalculator:
     Parameters:
 
         resolution = float_value [default = 3.0]
-        accuracy = 1|2|5|10|15|20|30|36|45|60 [default = 20]
+        accuracy = 1|2|3|4|5|6|9|10|12|15|18|20|30|36|45|60|90|180 [default = 20]
         stereo = none|unique|mirror|all [default = "none"]
         normalization = none|mean|std|all [default = "none"]
 
@@ -381,8 +381,8 @@ class SpectrophoreCalculator:
 
 
         # Initiate accuracy
-        if (360 % int(accuracy)) == 0: self.PARMS[1] = int(accuracy)
-        else: raise ValueError('(360 modus accuracy) should be equal to 0')
+        if (180 % int(accuracy)) == 0: self.PARMS[1] = int(accuracy)
+        else: raise ValueError('(180 modus accuracy) should be equal to 0')
         self.ANGLES = []
         for a in range(0, 360, self.PARMS[1]):
 	        for b in range(0, 360, self.PARMS[1]):
@@ -440,8 +440,8 @@ class SpectrophoreCalculator:
     ####################################################
     def accuracy(self, accuracy=None):
         if accuracy is None: return self.PARMS[1]
-        elif (360 % accuracy) == 0: self.PARMS[1] = int(accuracy)
-        else: raise ValueError('(360 modus accuracy) should be equal to 0')
+        elif (180 % accuracy) == 0: self.PARMS[1] = int(accuracy)
+        else: raise ValueError('(180 modus accuracy) should be equal to 0')
         self.ANGLES = []
         for a in range(0, 360, self.PARMS[1]):
 	        for b in range(0, 360, self.PARMS[1]):
@@ -731,35 +731,105 @@ class SpectrophoreCalculator:
 
 
 
+# #############################################################
+# Main
+# #############################################################
 
-def main():
-
-    mol = Chem.MolFromSmiles("[Cl]C([Br])I")
-    m2=Chem.AddHs(mol)
-    AllChem.EmbedMolecule(m2)
-    AllChem.MMFFOptimizeMolecule(m2)
-
-    calculator = SpectrophoreCalculator()
-    calculator.accuracy(10)
-    calculator.normalization("all")
-    sphore = calculator.calculate(m2)
-
-    verbose = True
-    if verbose:
-        np.set_printoptions(precision=3, suppress=True)
-        label = ["charges:","lipo:","shape:","electrophilicities:"]
-        sphore = sphore.reshape(4,12)
-        for r in range(4):
-            print("%19s " % (label[r]), end=" ")
-            for c in range(12): print("%6.3f " % (sphore[r][c]), end=" ")
-            print()
-    else:
-        print(sphore)
+import progressbar
+import argparse
 
 
+# Function to calculate spectrophores
+def __calculateSpectrophore(molecule, calculator, label):
+	spec = calculator.calculate(molecule)
+	if not np.all(spec): return None
+	specString = np.array2string(spec, max_line_width=1000, suppress_small=True, formatter={'float':lambda x: "%.5f" % x})
+	specString = label + " " + specString[1:-1]
+	return specString
+ 
+
+# Function to check the value of the resolution command-line argument
+def __check_resolution(value):
+	v = float(value)
+	if v <= 0: raise argparse.ArgumentTypeError("should be larger than 0")
+	return v
+
+
+# Function to parse the command-line arguments
+def __processCommandline():
+    parser = argparse.ArgumentParser(description = "Calculate spectrophores",
+                                     formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-n', '--norm', 
+                        dest = 'norm', 
+                        help = 'normalization setting', 
+                        default = 'none', 
+                        choices = ['none','mean','all','std'])
+    parser.add_argument('-s', '--stereo', 
+                        dest = 'stereo', 
+                        help = 'stereo setting', 
+                        default = 'none', 
+                        choices = ['none','unique','mirror','all'])
+    parser.add_argument('-a', '--accuracy', 
+                        dest = 'accuracy', 
+                        help = 'accuracy setting', 
+                        type = int, 
+                        default = 20, 
+                        choices = [1, 2, 3, 4, 5, 6, 9, 10, 12, 15, 18, 20, 30, 36, 45, 60, 90, 180])
+    parser.add_argument('-r', '--resolution', 
+                        dest = 'resolution', 
+                        help = 'resolution setting (>0)', 
+                        default = 3, 
+                        type = __check_resolution)
+    parser.add_argument('-p', '--np',
+                        dest = 'max_workers',
+                        help = 'number of processors to use; -1 is all processors',
+                        default = -1,
+                        type = int)
+    requiredNamed = parser.add_argument_group('required arguments')
+    requiredNamed.add_argument('-i', '--in', 
+                               dest = 'infile', 
+                               help = 'input sdf file', 
+                               required = True)
+    requiredNamed.add_argument('-o', '--out', 
+                               dest = 'outfile', 
+                               help = 'output spectrophore file', 
+                               required = True)
+    return parser.parse_args()
 
 
 
-
+# Main
 if __name__ == "__main__":
-    main()
+    args = __processCommandline()
+
+    calculator = spectrophore.SpectrophoreCalculator(normalization = args.norm, 
+                                        stereo = args.stereo, 
+                                        accuracy = args.accuracy, 
+                                        resolution = args.resolution)
+    print("Normalization: ", args.norm)
+    print("Stereo:        ", args.stereo)
+    print("Accuracy:      ", args.accuracy)
+    print("Resolution:    ", args.resolution)
+    print("Input file:    ", args.infile)
+    print("Output file:   ", args.outfile)
+    print("Processors:    ", args.max_workers)
+    supplier = Chem.SDMolSupplier(args.infile, removeHs=False)
+    of = open(args.outfile, 'w')
+    mw = None
+    if args.max_workers > 0: mw = args.max_workers
+    with futures.ProcessPoolExecutor(max_workers = mw) as executor:
+	    jobs = []
+	    for mol in supplier:
+	    	if mol:
+		    	label = mol.GetProp("_Name")
+		    	job = executor.submit(__calculateSpectrophore, mol, calculator, label)
+		    	jobs.append(job)
+	
+	    widgets = ["Generating spectrophores; ", progressbar.Percentage(), " ", progressbar.ETA(), " ", progressbar.Bar()]
+	    pbar = progressbar.ProgressBar(widgets = widgets, maxval = len(jobs))
+	    for job in pbar(futures.as_completed(jobs)):
+		    spec = job.result()
+		    if spec is not None: of.write("%s\n" % (spec))
+
+    of.close()
+

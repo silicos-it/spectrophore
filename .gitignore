@@ -1,0 +1,4 @@
+build/
+dist/
+spectrophore/__pycache__/
+uamc_spectrophore.egg-info/

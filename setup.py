@@ -31,6 +31,7 @@ setup(
     install_requires = [
         "scipy",
         "numpy",
+        "progressbar",
     ],
 	python_requires = ">=3.6",
 )
