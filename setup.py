@@ -1,48 +1,36 @@
-#!/usr/bin/python
- 
-from distutils.core import setup
-from distutils.extension import Extension
+#!/usr/bin/env python
 
-from os.path import join as pjoin
+from setuptools import setup, find_packages
 
-# Where to find extensions
-SPEC = 'spectrophores'
+with open("README.md", "r") as fh:
+	long_description = fh.read()
 
-extensions = []
-extensions.append(
-    Extension(pjoin(SPEC, 'CRotate'),
-              language = 'c++',
-              sources = [pjoin(SPEC, 'CRotate_boost.cpp')],
-              libraries = ["boost_python"]))
-
-setup(name = "spectrophore",
-      version = '1.0.1',
-      description = 'Spectrophore class to be used as Python library',
-      platforms = ['Linux', 'Unix'],
-      author = 'Fabio Mendes, Hans de Winter',
-      author_email = 'fabiomendes.farm@gmail.com, hans.dewinter@uantwerpen.be',
-      url = 'https://www.uantwerpen.be/nl/onderzoeksgroep/uamc/',
-      download_url = 'https://github.com/UAMCAntwerpen/spectrophores/archive/spectrophore-1.0.1.tar.gz',
-      ext_modules = extensions, 
-      py_modules = [pjoin(SPEC, 'spectrophore')],
-      package_dir = {'spectrophores': 'spectrophores'},
-      packages = ['spectrophores'],
-      scripts = ['sdf2spectrophore.py'],
-      classifiers = [
-            'Development Status :: 5 - Production/Stable',
-            'Environment :: Console',
-            'Intended Audience :: End Users/Desktop',
-            'Intended Audience :: Developers',
-            'Intended Audience :: Science/Research',
-            'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-            'Operating System :: POSIX :: Linux',
-            'Programming Language :: Python',
-            'Programming Language :: C++',
-            'Topic :: Scientific/Engineering :: Medical Science Apps.',
-            'Topic :: Scientific/Engineering :: Bio-Informatics',
-            'Topic :: Scientific/Engineering :: Chemistry',
-            'Topic :: Scientific/Engineering :: Physics'
-      ]
+setup(
+    name = "uamc-spectrophore",
+    version = "1.0.1",
+    author = "Hans De Winter",
+    author_email = "hans.dewinter@uantwerpen.be",
+    description = ("Python implementation of the spectrophore descriptor"),
+    long_description = long_description,
+	long_description_content_type="text/markdown",
+    url = "https://github.com/UAMCAntwerpen/spectrophore",
+	download_url = "https://github.com/UAMCAntwerpen/spectrophore/releases/tag/1.0.1",
+    packages = find_packages(include=['spectrophore']),
+	keywords = ['uamc', 'spectrophore', 'rdkit', 'cheminformatics'],
+    classifiers = [
+        "Development Status :: 5 - Production/Stable",
+		"Environment :: Console",
+		"Intended Audience :: Science/Research",
+        "License :: Freeware",
+		"Operating System :: POSIX :: Linux",
+		"Operating System :: MacOS :: MacOS X",
+		"Programming Language :: Python :: 3",
+		"Topic :: Scientific/Engineering :: Chemistry",
+		"Topic :: Software Development :: Libraries :: Python Modules",
+    ],
+    install_requires = [
+        "scipy",
+        "numpy",
+    ],
+	python_requires = ">=3.6",
 )
-
-

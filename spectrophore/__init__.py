@@ -1,5 +1,1 @@
-# Import seaborn objects
-from .spectrophore import *
-from . import CRotate
-
-__version__ = "1.0.0"
+__all__ = ["spectrophore"]

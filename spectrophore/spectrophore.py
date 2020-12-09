@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+# Copyright 2012 by Silicos-it, a division of Imacosi BVBA
+# Copyright 2020- by UAMC, the Medicinal Chemistry department of the University
+# of Antwerp
+
+__all__ = ['SpectrophoreCalculator']
+__version__ = "1.0.1"
+
 # Numba support
 from numba import njit
 
@@ -16,15 +23,15 @@ import scipy.linalg
 
 # Math
 import math
-        
+
 
 
 @njit()
 def rotate(PARMS, COORD, ANGLES, ROTMAT, ENERGY, MINENERGY, BOXES, RESOLUTION):
-    
-    count = 0        		
+
+    count = 0
     for step in ANGLES:
-    
+
         # Rotate
         ca = math.cos(step[0])
         cb = math.cos(step[1])
@@ -49,13 +56,13 @@ def rotate(PARMS, COORD, ANGLES, ROTMAT, ENERGY, MINENERGY, BOXES, RESOLUTION):
                 for j in range(3):
                     COORD[atom][i+3] = 0.0
                     COORD[atom][i+3] += ROTMAT[i][j] * COORD[atom][j]
- 
-        
+
+
         # Update outer limits of molecule, taking into account atom radius and resolution
         for i in range(3):
             COORD[:,i+6] = COORD[:,i+3] - COORD[:,12] - RESOLUTION
             COORD[:,i+9] = COORD[:,i+3] + COORD[:,12] + RESOLUTION
-        
+
         # Adopt box to fit around molecule
         mx = COORD[0,6]
         my = COORD[0,7]
@@ -86,60 +93,59 @@ def rotate(PARMS, COORD, ANGLES, ROTMAT, ENERGY, MINENERGY, BOXES, RESOLUTION):
         BOXES[9,-3:] =  hx,my,mz
         BOXES[10,-3:] = mx,hy,mz
         BOXES[11,-3:] = hx,py,mz
-		
+
         # Calculate energies
         # Empty the energy arrays
         for i in range(len(ENERGY)): ENERGY[i] = 0.0
-		
+
         # Loop over each boxpoint (12 points)
         for boxPoint in range(PARMS[8]):
-			
+
             # Loop over each atom
             for atom in range(len(COORD)):
-				
+
                 # Distance between boxpoint and atom
                 d = math.sqrt(np.sum((BOXES[boxPoint][-3:] - COORD[atom][3:6])**2))
-				
+
                 # Loop over each probe
                 for probe in range(PARMS[6]):
-					
+
                     # Loop over each property (4 properties)
                     for prop in range(PARMS[7]):
-                        index = (prop*probe)+probe
+                        index = PARMS[6]*prop+probe
                         ENERGY[index] += (COORD[atom][prop+13] * BOXES[boxPoint][probe]) / d
-                        
-				
+
         if count == 0:
             MINENERGY = ENERGY
             count += 1
         else:
             MINENERGY = np.minimum(ENERGY, MINENERGY)
-        
+
     # Finish off
     return(-100 * MINENERGY)
-                    
-				
-          
-    
+
+
+
+
 
 
 class SpectrophoreCalculator:
     """
     Class to calculate spectrophores
-    
+
     Usage:
-    
+
         SpectrophoreCalculator(parameters)
-    
+
     Parameters:
-    
+
         resolution = float_value [default = 3.0]
-        accuracy = 1|2|5|10|15|20|30|36|45|60 [default = 10]
+        accuracy = 1|2|5|10|15|20|30|36|45|60 [default = 20]
         stereo = none|unique|mirror|all [default = "none"]
         normalization = none|mean|std|all [default = "none"]
-        
+
     Returns:
-    
+
         numpy.ndarray
     """
 
@@ -163,7 +169,7 @@ class SpectrophoreCalculator:
     #
     #
     # #####################################
-    # self.COORD[natoms][17]  
+    # self.COORD[natoms][17]
     # #####################################
     #
     # self.COORD[i][0]      Original x-coordinate of atom i
@@ -183,7 +189,7 @@ class SpectrophoreCalculator:
     # self.COORD[i][11]     Rotated z-coordinate of atom i + radius of atom i
     #
     # self.COORD[i][12]     Radius of atom i
-    # 
+    #
     # self.COORD[i][13]     Atomic property 0 of atom i (atomic partial charges)
     # self.COORD[i][14]     Atomic property 1 of atom i (atomic lipophilicities)
     # self.COORD[i][15]     Atomic property 2 of atom i (atomic shape deviations)
@@ -210,9 +216,9 @@ class SpectrophoreCalculator:
     # self.ANGLES[number of rotations][3]
     # #####################################
     #
-    # self.ANGLES[i][0]     Angle alpha of rotation i 
-    # self.ANGLES[i][1]     Angle beta of rotation i 
-    # self.ANGLES[i][2]     Angle gamma of rotation i 
+    # self.ANGLES[i][0]     Angle alpha of rotation i
+    # self.ANGLES[i][1]     Angle beta of rotation i
+    # self.ANGLES[i][2]     Angle gamma of rotation i
     #
     #
     # #####################################
@@ -226,7 +232,7 @@ class SpectrophoreCalculator:
     # self.PROBES[48][12]
     # #####################################
     #
-    # self.PROBES[i][j]             Probe value of the i'th probe (1-48) and the j'th box point (1-12)
+    # self.PROBES[i][j]     Probe value of the i'th probe (1-48) and the j'th box point (1-12)
     #
     #
     # #####################################
@@ -237,17 +243,17 @@ class SpectrophoreCalculator:
     # self.BOXES[i][numberOProbes + 0]   x-coordinate of the i'th box point (1-12)
     # self.BOXES[i][numberOProbes + 1]   y-coordinate of the i'th box point (1-12)
     # self.BOXES[i][numberOProbes + 2]   z-coordinate of the i'th box point (1-12)
-    
-    
-    
+
+
+
 
     ####################################################
-    def __init__(self, resolution=3.0, accuracy=10, stereo='none', normalization='none'):
+    def __init__(self, resolution=3.0, accuracy=20, stereo='none', normalization='none'):
 
         # Initiate PARMS
         self.PARMS = np.array([
             0,      #  0 Normalisation
-            10,     #  1 Accuracy
+            20,     #  1 Accuracy
             0,      #  2 Stereo
             0,      #  3 BeginProbe
             12,     #  4 EndProbe
@@ -256,106 +262,106 @@ class SpectrophoreCalculator:
             4,      #  7 Number of properties
             12      #  8 Number of box points
             ])
-       
+
 
         # Initiate PROBES
         self.PROBES = np.array([
             #  1 / Dodecapole - non-stereo - probe 1
             [+1, +1, -1, -1, -1, +1, +1, -1, -1, -1, +1, +1],
             #  2 / Dodecapole - non-stereo - probe 2
-            [+1, +1, -1, -1, +1, -1, -1, +1, -1, -1, +1, +1], 
+            [+1, +1, -1, -1, +1, -1, -1, +1, -1, -1, +1, +1],
             #  3 / Dodecapole - non-stereo - probe 3
-            [+1, +1, +1, -1, -1, -1, -1, -1, -1, +1, +1, +1], 
+            [+1, +1, +1, -1, -1, -1, -1, -1, -1, +1, +1, +1],
             #  4 / Dodecapole - non-stereo - probe 4
-            [+1, +1, +1, -1, -1, -1, -1, -1, +1, +1, -1, +1], 
+            [+1, +1, +1, -1, -1, -1, -1, -1, +1, +1, -1, +1],
             #  5 / Dodecapole - non-stereo - probe 5
-            [+1, +1, +1, -1, -1, +1, -1, +1, -1, -1, +1, -1], 
+            [+1, +1, +1, -1, -1, +1, -1, +1, -1, -1, +1, -1],
             #  6 / Dodecapole - non-stereo - probe 6
-            [+1, +1, +1, -1, +1, -1, +1, -1, -1, -1, +1, -1], 
+            [+1, +1, +1, -1, +1, -1, +1, -1, -1, -1, +1, -1],
             #  7 / Dodecapole - non-stereo - probe 7
-            [+1, +1, +1, -1, +1, -1, +1, -1, +1, -1, -1, -1], 
+            [+1, +1, +1, -1, +1, -1, +1, -1, +1, -1, -1, -1],
             #  8 / Dodecapole - non-stereo - probe 8
-            [+1, +1, +1, +1, -1, -1, -1, -1, +1, -1, +1, -1], 
+            [+1, +1, +1, +1, -1, -1, -1, -1, +1, -1, +1, -1],
             #  9 / Dodecapole - non-stereo - probe 9
-            [+1, +1, +1, +1, -1, -1, -1, -1, +1, +1, -1, -1], 
+            [+1, +1, +1, +1, -1, -1, -1, -1, +1, +1, -1, -1],
             # 10 / Dodecapole - non-stereo - probe 10
-            [+1, +1, +1, +1, +1, -1, -1, +1, -1, -1, -1, -1], 
+            [+1, +1, +1, +1, +1, -1, -1, +1, -1, -1, -1, -1],
             # 11 / Dodecapole - non-stereo - probe 11
-            [+1, +1, +1, +1, +1, +1, -1, -1, -1, -1, -1, -1], 
+            [+1, +1, +1, +1, +1, +1, -1, -1, -1, -1, -1, -1],
             # 12 / Dodecapole - non-stereo - probe 12
-            [+1, +1, +1, -1, -1, +1, -1, -1, -1, +1, -1, +1], 
+            [+1, +1, +1, -1, -1, +1, -1, -1, -1, +1, -1, +1],
             # 13 / Dodecapole - mirror-stereo - probe 1
-            [+1, +1, -1, -1, -1, -1, +1, +1, -1, +1, +1, -1], 
+            [+1, +1, -1, -1, -1, -1, +1, +1, -1, +1, +1, -1],
             # 14 / Dodecapole - mirror-stereo - probe 2
-            [+1, +1, +1, -1, -1, -1, -1, -1, +1, -1, +1, +1], 
+            [+1, +1, +1, -1, -1, -1, -1, -1, +1, -1, +1, +1],
             # 15 / Dodecapole - mirror-stereo - probe 3
-            [+1, +1, +1, -1, -1, -1, -1, +1, -1, +1, +1, -1], 
+            [+1, +1, +1, -1, -1, -1, -1, +1, -1, +1, +1, -1],
             # 16 / Dodecapole - mirror-stereo - probe 4
-            [+1, +1, +1, -1, -1, -1, +1, -1, -1, +1, -1, +1], 
+            [+1, +1, +1, -1, -1, -1, +1, -1, -1, +1, -1, +1],
             # 17 / Dodecapole - mirror-stereo - probe 5
-            [+1, +1, +1, -1, -1, -1, +1, -1, -1, +1, +1, -1], 
+            [+1, +1, +1, -1, -1, -1, +1, -1, -1, +1, +1, -1],
             # 18 / Dodecapole - mirror-stereo - probe 6
-            [+1, +1, +1, -1, -1, -1, +1, -1, +1, -1, +1, -1], 
+            [+1, +1, +1, -1, -1, -1, +1, -1, +1, -1, +1, -1],
             # 19 / Dodecapole - mirror-stereo - probe 7
-            [+1, +1, +1, -1, -1, -1, +1, -1, +1, +1, -1, -1], 
+            [+1, +1, +1, -1, -1, -1, +1, -1, +1, +1, -1, -1],
             # 20 / Dodecapole - mirror-stereo - probe 8
-            [+1, +1, +1, -1, -1, -1, +1, +1, -1, +1, -1, -1], 
+            [+1, +1, +1, -1, -1, -1, +1, +1, -1, +1, -1, -1],
             # 21 / Dodecapole - mirror-stereo - probe 9
-            [+1, +1, +1, -1, -1, -1, +1, +1, +1, -1, -1, -1], 
+            [+1, +1, +1, -1, -1, -1, +1, +1, +1, -1, -1, -1],
             # 22 / Dodecapole - mirror-stereo - probe 10
-            [+1, +1, +1, -1, -1, +1, +1, -1, -1, -1, -1, +1], 
+            [+1, +1, +1, -1, -1, +1, +1, -1, -1, -1, -1, +1],
             # 23 / Dodecapole - mirror-stereo - probe 11
-            [+1, +1, +1, -1, -1, +1, +1, -1, -1, -1, +1, -1], 
+            [+1, +1, +1, -1, -1, +1, +1, -1, -1, -1, +1, -1],
             # 24 / Dodecapole - mirror-stereo - probe 12
-            [+1, +1, +1, -1, -1, +1, +1, -1, -1, +1, -1, -1], 
+            [+1, +1, +1, -1, -1, +1, +1, -1, -1, +1, -1, -1],
             # 25 / Dodecapole - mirror-stereo - probe 13
-            [+1, +1, +1, -1, -1, +1, +1, +1, -1, -1, -1, -1], 
+            [+1, +1, +1, -1, -1, +1, +1, +1, -1, -1, -1, -1],
             # 26 / Dodecapole - mirror-stereo - probe 14
-            [+1, +1, +1, -1, +1, -1, -1, +1, +1, -1, -1, -1], 
+            [+1, +1, +1, -1, +1, -1, -1, +1, +1, -1, -1, -1],
             # 27 / Dodecapole - mirror-stereo - probe 15
-            [+1, +1, +1, -1, +1, -1, +1, -1, -1, -1, -1, +1], 
+            [+1, +1, +1, -1, +1, -1, +1, -1, -1, -1, -1, +1],
             # 28 / Dodecapole - mirror-stereo - probe 16
-            [+1, +1, +1, -1, +1, -1, +1, +1, -1, -1, -1, -1], 
+            [+1, +1, +1, -1, +1, -1, +1, +1, -1, -1, -1, -1],
             # 29 / Dodecapole - mirror-stereo - probe 17
-            [+1, +1, +1, +1, +1, -1, -1, -1, -1, -1, -1, +1], 
+            [+1, +1, +1, +1, +1, -1, -1, -1, -1, -1, -1, +1],
             # 30 / Dodecapole - mirror-stereo - probe 18
-            [+1, +1, +1, +1, +1, -1, -1, -1, -1, -1, +1, -1], 
+            [+1, +1, +1, +1, +1, -1, -1, -1, -1, -1, +1, -1],
             # 31 / Dodecapole - unique-stereo - probe 1
-            [+1, +1, -1, -1, +1, -1, +1, -1, +1, -1, -1, +1], 
+            [+1, +1, -1, -1, +1, -1, +1, -1, +1, -1, -1, +1],
             # 32 / Dodecapole - unique-stereo - probe 2
-            [+1, +1, +1, -1, -1, -1, -1, -1, +1, +1, +1, -1], 
+            [+1, +1, +1, -1, -1, -1, -1, -1, +1, +1, +1, -1],
             # 33 / Dodecapole - unique-stereo - probe 3
-            [+1, +1, +1, -1, -1, +1, -1, -1, -1, -1, +1, +1], 
+            [+1, +1, +1, -1, -1, +1, -1, -1, -1, -1, +1, +1],
             # 34 / Dodecapole - unique-stereo - probe 4
-            [+1, +1, +1, -1, +1, -1, -1, -1, -1, +1, -1, +1], 
+            [+1, +1, +1, -1, +1, -1, -1, -1, -1, +1, -1, +1],
             # 35 / Dodecapole - unique-stereo - probe 5
-            [+1, +1, +1, -1, +1, -1, -1, -1, -1, -1, +1, +1], 
+            [+1, +1, +1, -1, +1, -1, -1, -1, -1, -1, +1, +1],
             # 36 / Dodecapole - unique-stereo - probe 6
-            [+1, +1, +1, -1, +1, -1, -1, -1, +1, -1, +1, -1], 
+            [+1, +1, +1, -1, +1, -1, -1, -1, +1, -1, +1, -1],
             # 37 / Dodecapole - unique-stereo - probe 7
-            [+1, +1, +1, -1, +1, -1, -1, -1, +1, -1, -1, +1], 
+            [+1, +1, +1, -1, +1, -1, -1, -1, +1, -1, -1, +1],
             # 38 / Dodecapole - unique-stereo - probe 8
-            [+1, +1, +1, -1, +1, +1, -1, -1, -1, -1, -1, +1], 
+            [+1, +1, +1, -1, +1, +1, -1, -1, -1, -1, -1, +1],
             # 39 / Dodecapole - unique-stereo - probe 9
-            [+1, +1, +1, -1, +1, +1, -1, -1, +1, -1, -1, -1], 
+            [+1, +1, +1, -1, +1, +1, -1, -1, +1, -1, -1, -1],
             # 40 / Dodecapole - unique-stereo - probe 10
-            [+1, +1, +1, -1, +1, -1, -1, +1, -1, +1, -1, -1], 
+            [+1, +1, +1, -1, +1, -1, -1, +1, -1, +1, -1, -1],
             # 41 / Dodecapole - unique-stereo - probe 11
-            [+1, +1, +1, -1, +1, -1, -1, +1, -1, -1, +1, -1], 
+            [+1, +1, +1, -1, +1, -1, -1, +1, -1, -1, +1, -1],
             # 42 / Dodecapole - unique-stereo - probe 12
-            [+1, +1, +1, -1, +1, -1, -1, +1, -1, -1, -1, +1], 
+            [+1, +1, +1, -1, +1, -1, -1, +1, -1, -1, -1, +1],
             # 43 / Dodecapole - unique-stereo - probe 13
-            [+1, +1, +1, -1, +1, +1, -1, +1, -1, -1, -1, -1], 
+            [+1, +1, +1, -1, +1, +1, -1, +1, -1, -1, -1, -1],
             # 44 / Dodecapole - unique-stereo - probe 14
-            [+1, +1, +1, -1, +1, +1, -1, -1, -1, -1, +1, -1], 
+            [+1, +1, +1, -1, +1, +1, -1, -1, -1, -1, +1, -1],
             # 45 / Dodecapole - unique-stereo - probe 15
-            [+1, +1, +1, -1, +1, -1, +1, -1, -1, +1, -1, -1], 
+            [+1, +1, +1, -1, +1, -1, +1, -1, -1, +1, -1, -1],
             # 46 / Dodecapole - unique-stereo - probe 16
-            [+1, +1, +1, -1, +1, +1, +1, -1, -1, -1, -1, -1], 
+            [+1, +1, +1, -1, +1, +1, +1, -1, -1, -1, -1, -1],
             # 47 / Dodecapole - unique-stereo - probe 17
-            [+1, +1, +1, +1, +1, -1, -1, -1, +1, -1, -1, -1], 
+            [+1, +1, +1, +1, +1, -1, -1, -1, +1, -1, -1, -1],
             # 48 / Dodecapole - unique-stereo - probe 18
-            [+1, +1, +1, +1, +1, -1, -1, -1, -1, +1, -1, -1]  
+            [+1, +1, +1, +1, +1, -1, -1, -1, -1, +1, -1, -1]
         ])
         print("Probes initialised: %d number of probes in total" % (len(self.PROBES)))
 
@@ -363,8 +369,8 @@ class SpectrophoreCalculator:
         # Initiate resolution
         if resolution > 0: self.RESOLUTION = resolution
         else: raise ValueError('Resolution should be larger than 0')
- 
- 
+
+
         # Initiate the type of normalization
         if   normalization.lower() == 'none': self.PARMS[0] = 0
         elif normalization.lower() == 'mean': self.PARMS[0] = 1
@@ -372,8 +378,8 @@ class SpectrophoreCalculator:
         elif normalization.lower() == 'all':  self.PARMS[0] = 3
         else: raise ValueError(
             'The normalization flag should be "none", "mean", "std" or "all"')
- 
-       
+
+
         # Initiate accuracy
         if (360 % int(accuracy)) == 0: self.PARMS[1] = int(accuracy)
         else: raise ValueError('(360 modus accuracy) should be equal to 0')
@@ -391,18 +397,18 @@ class SpectrophoreCalculator:
         elif stereo.lower() == 'mirror': self.PARMS[2:7] = [2,30,48,4*18,18]
         elif stereo.lower() == 'all':    self.PARMS[2:7] = [3,12,48,4*36,36]
         else: raise ValueError('The stereo flag should be "none", "unique", "mirror" or "all"')
-        
-        
+
+
         # Setup the boxes
         self.BOXES = np.array(np.zeros(self.PARMS[8] * (self.PARMS[6] + 3))).reshape(self.PARMS[8], self.PARMS[6] + 3)
         print("Only using %d probes" % (self.PARMS[6]))
         for probe in range(self.PARMS[3], self.PARMS[4]):   # from beginProbe to endProbe
             for boxpoint in range(self.PARMS[8]):           # loop over all box points
                 self.BOXES[boxpoint][probe] = self.PROBES[probe][boxpoint]
- 
- 
- 
-   
+
+
+
+
     ####################################################
     def resolution(self, resolution=None):
         if resolution is None: return self.RESOLUTION
@@ -412,7 +418,7 @@ class SpectrophoreCalculator:
 
 
 
-    
+
     ####################################################
     def normalization(self, normalization=None):
         if normalization is None:
@@ -428,12 +434,12 @@ class SpectrophoreCalculator:
             else: raise ValueError(
             'The normalization flag should be "none", "mean", "std" or "all"')
 
-   
-   
-    
+
+
+
     ####################################################
     def accuracy(self, accuracy=None):
-        if int(accuracy) is None: return self.PARMS[1]
+        if accuracy is None: return self.PARMS[1]
         elif (360 % accuracy) == 0: self.PARMS[1] = int(accuracy)
         else: raise ValueError('(360 modus accuracy) should be equal to 0')
         self.ANGLES = []
@@ -444,7 +450,7 @@ class SpectrophoreCalculator:
         self.ANGLES = np.array(self.ANGLES)
 
 
-    
+
 
     ####################################################
     def stereo(self, stereo=None):
@@ -459,174 +465,174 @@ class SpectrophoreCalculator:
             elif stereo.lower() == 'mirror': self.PARMS[2:7] = [2,30,48,4*18,18]
             elif stereo.lower() == 'all':    self.PARMS[2:7] = [3,12,48,4*36,36]
             else: raise ValueError('The stereo flag should be "none", "unique", "mirror" or "all"')
-        
+
         # Setup the boxes
         self.BOXES = np.array(np.zeros(self.PARMS[8] * (self.PARMS[6] + 3))).reshape(self.PARMS[8], self.PARMS[6] + 3)
         print("Only using %d probes" % (self.PARMS[6]))
         for probe in range(self.PARMS[3], self.PARMS[4]):   # from beginProbe to endProbe
             for boxpoint in range(self.PARMS[8]):           # loop over all box points
                 self.BOXES[boxpoint][probe] = self.PROBES[probe][boxpoint]
-        
 
-        
-        
-        
+
+
+
+
     ####################################################
     def calculate(self, mol, confID=0):
-      
+
         # Wrong conformation flag
         wrong3d = False
 
         # Check number of atoms after adding the hydrogens
         nAtoms = mol.GetNumAtoms()
         if nAtoms < 3: raise ValueError( '>=3 atoms are needed in molecule, only %d given' % (nAtoms))
-        
+
         # Create the COORD array
         self.COORD = np.array(np.zeros(nAtoms * 17)).reshape(nAtoms, 17)
-        
+
         # Atomic properties
         # [0]: atomic partial charges -> conformation dependent
         # [1]: atomic lipophilicities
         # [2]: atomic shape deviations -> conformation dependent
         # [3]: atomic electrophilicities -> conformation dependent
-               
+
         chi = np.zeros(nAtoms)
         eta = np.zeros(nAtoms)
         A = np.zeros((nAtoms + 1, nAtoms + 1))
         B = np.zeros(nAtoms + 1)
-       
-        a = 0        
+
+        a = 0
         for atom in mol.GetAtoms():
             n = atom.GetAtomicNum()
             if   n ==  1:   # H
-                self.COORD[a][12] = +1.20       
+                self.COORD[a][12] = +1.20
                 eta[a] = +0.65971
                 chi[a] = +0.20606
                 if atom.GetTotalValence():
                     neighbors = atom.GetNeighbors()
-                    self.COORD[a][14] = -0.018     
+                    self.COORD[a][14] = -0.018
                     for neighbor in neighbors:
                         an = neighbor.GetAtomicNum()
                         if an != 1 and an != 6:
-                            self.COORD[a][14] = -0.374     
+                            self.COORD[a][14] = -0.374
                             break
                 else:
                     prop[a][1] = -0.175
             elif n ==  3:   # Li
-                self.COORD[a][12] = 1.82       
+                self.COORD[a][12] = 1.82
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n ==  5:   # B
-                self.COORD[a][12] = 2.00       
+                self.COORD[a][12] = 2.00
                 eta[a] = +0.32966
                 chi[a] = +0.32966
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n ==  6:   # C
-                self.COORD[a][12] = 1.70       
+                self.COORD[a][12] = 1.70
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = +0.271     
+                self.COORD[a][14] = +0.271
             elif n ==  7:   # N
-                self.COORD[a][12] = 1.55       
+                self.COORD[a][12] = 1.55
                 eta[a] = +0.34519
                 chi[a] = +0.49279
-                self.COORD[a][14] = -0.137     
+                self.COORD[a][14] = -0.137
             elif n ==  8:   # O
-                self.COORD[a][12] = 1.52       
+                self.COORD[a][12] = 1.52
                 eta[a] = +0.54428
                 chi[a] = +0.73013
-                self.COORD[a][14] = -0.321     
+                self.COORD[a][14] = -0.321
             elif n ==  9:   # F
-                self.COORD[a][12] = 1.47       
+                self.COORD[a][12] = 1.47
                 eta[a] = +0.72664
                 chi[a] = +0.72052
-                self.COORD[a][14] = +0.217     
+                self.COORD[a][14] = +0.217
             elif n == 11:   # Na
-                self.COORD[a][12] = 2.27       
+                self.COORD[a][12] = 2.27
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 12:   # Mg
-                self.COORD[a][12] = 1.73        
+                self.COORD[a][12] = 1.73
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 14:   # Si
-                self.COORD[a][12] = 2.10       
+                self.COORD[a][12] = 2.10
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 15:   # P
-                self.COORD[a][12] = 1.80       
+                self.COORD[a][12] = 1.80
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 16:   # S
-                self.COORD[a][12] = 1.80       
+                self.COORD[a][12] = 1.80
                 eta[a] = +0.20640
                 chi[a] = +0.62020
-                self.COORD[a][14] = +0.385     
+                self.COORD[a][14] = +0.385
             elif n == 17:   # Cl
-                self.COORD[a][12] = 1.75       
+                self.COORD[a][12] = 1.75
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = +0.632     
+                self.COORD[a][14] = +0.632
             elif n == 19:   # K
-                self.COORD[a][12] = 2.75       
+                self.COORD[a][12] = 2.75
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 20:   # Ca
-                self.COORD[a][12] = 2.00       
+                self.COORD[a][12] = 2.00
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 26:   # Fe
-                self.COORD[a][12] = 1.10       
+                self.COORD[a][12] = 1.10
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 29:   # Cu
-                self.COORD[a][12] = 1.40       
+                self.COORD[a][12] = 1.40
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 30:   # Zn
-                self.COORD[a][12] = 1.39       
+                self.COORD[a][12] = 1.39
                 eta[a] = +0.32966
                 chi[a] = +0.36237
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             elif n == 35:   # Br
-                self.COORD[a][12] = 1.85       
+                self.COORD[a][12] = 1.85
                 eta[a] = +0.54554
                 chi[a] = +0.70052
-                self.COORD[a][14] = +0.815     
+                self.COORD[a][14] = +0.815
             elif n == 53:   # I
-                self.COORD[a][12] = 1.98       
+                self.COORD[a][12] = 1.98
                 eta[a] = +0.30664
                 chi[a] = +0.68052
-                self.COORD[a][14] = +0.198     
+                self.COORD[a][14] = +0.198
             else:
-                self.COORD[a][12] = 1.50       
+                self.COORD[a][12] = 1.50
                 eta[a] = +0.65971
                 chi[a] = +0.20606
-                self.COORD[a][14] = -0.175     
+                self.COORD[a][14] = -0.175
             a += 1
-        
+
         # Conformers
         if mol.GetNumConformers() < confID + 1:
             raise ValueError(
-                'At least %d conformation(s) should be present, %d found' % 
+                'At least %d conformation(s) should be present, %d found' %
                 (confID + 1, mol.GetNumConformers()))
         conf = mol.GetConformer(confID)
-       
+
         # Coordinates
         for r in range(nAtoms):
             c = conf.GetAtomPosition(r)
             for i in range(3): self.COORD[r][i] = c[i]
             A[r][r] = 2 * eta[r]
-        
+
         # Complete A matrix
         for r in range(nAtoms):
             for i in range(r + 1, nAtoms):
@@ -635,10 +641,10 @@ class SpectrophoreCalculator:
                 d += (self.COORD[r][2] - self.COORD[i][2])**2
 
                 if d == 0: return(np.zeros(self.PARMS[6] * self.PARMS[7]))
-                d = np.sqrt(d)                
+                d = np.sqrt(d)
                 A[r][i] = 0.529176 / d    # Angstrom to au
-                A[i][r] = A[r][i]   
-         
+                A[i][r] = A[r][i]
+
         # Property [0]: partial atomic charges
         for i in range(nAtoms):
             A[i][nAtoms] = -1
@@ -648,8 +654,8 @@ class SpectrophoreCalculator:
         B[nAtoms] = Chem.GetFormalCharge(mol)
         X = scipy.linalg.solve(A, B)
         chi2 = X[nAtoms] * X[nAtoms]
-        for a in range(nAtoms): self.COORD[a][13] = X[a]            
-        
+        for a in range(nAtoms): self.COORD[a][13] = X[a]
+
         # Property [2]: atomic shape deviations
         cog = np.mean(self.COORD[:,0:3],0)
         d = np.zeros(nAtoms)
@@ -671,13 +677,13 @@ class SpectrophoreCalculator:
 
         # Orient molecule to its center of gravity and orient in standard way
         # 1) Center molecule around its center of gravity
-        self.COORD[:,0:3] -= cog    
-        
+        self.COORD[:,0:3] -= cog
+
         # 2) Determine atom that is furthest away from origin
         d = self.COORD[:,0:3]**2
         d = np.sqrt(d.sum(axis=1))
         maxAtom = np.argmax(d)
-        
+
         # 3) Rotate all atoms along z-axis
         angle = -np.arctan2(self.COORD[maxAtom][1], self.COORD[maxAtom][0])
         c = np.cos(angle)
@@ -687,7 +693,7 @@ class SpectrophoreCalculator:
             y = s * self.COORD[i][0] + c * self.COORD[i][1]
             self.COORD[i][0] = x
             self.COORD[i][1] = y
-           
+
         # 4) Rotate all atoms along y-axis to place the maxAtom on z
         angle = -np.arctan2(self.COORD[maxAtom][0], self.COORD[maxAtom][2])
         c = np.cos(angle)
@@ -697,28 +703,37 @@ class SpectrophoreCalculator:
             z = c * self.COORD[i][2] - s * self.COORD[i][0]
             self.COORD[i][0] = x
             self.COORD[i][2] = z
-            
+
         # 5) Center molecule again around its COG
         cog = np.mean(self.COORD[:,0:3],0)
-        self.COORD[:,0:3] -= cog 
+        self.COORD[:,0:3] -= cog
 
         # Rotate
         self.ENERGY = np.zeros(self.PARMS[6] * self.PARMS[7])
         self.MINENERGY = np.zeros(self.PARMS[6] * self.PARMS[7])
         self.ROTMAT = np.ndarray(shape=(3,3))
         sphore = rotate(self.PARMS, self.COORD, self.ANGLES, self.ROTMAT, self.ENERGY, self.MINENERGY, self.BOXES, self.RESOLUTION)
-        
+
         # Normalise
-        if   self.PARMS[0] == 0: return(sphore)
-        elif self.PARMS[0] == 1: return(sphore - np.mean(sphore))
-        elif self.PARMS[0] == 2: return(sphore / np.std(sphore))
-        elif self.PARMS[0] == 3: return((sphore - np.mean(sphore)) / np.std(sphore))
-        
+        if self.PARMS[0] == 0: return(sphore)
+        else:
+            t = sphore.reshape(self.PARMS[7], self.PARMS[6])
+            m = np.mean(t,1)
+            s = np.std(t,1)
+
+            if self.PARMS[0] == 1:
+                for r in range(self.PARMS[7]): t[r,:] = t[r,:] - m[r]
+            elif self.PARMS[0] == 2:
+                for r in range(self.PARMS[7]): t[r,:] = t[r,:] / s[r]
+            elif self.PARMS[0] == 3:
+                for r in range(self.PARMS[7]): t[r,:] = (t[r,:] - m[r]) / s[r]
+            return(t.flatten())
 
 
-        
+
+
 def main():
-    
+
     mol = Chem.MolFromSmiles("[Cl]C([Br])I")
     m2=Chem.AddHs(mol)
     AllChem.EmbedMolecule(m2)
@@ -728,7 +743,7 @@ def main():
     calculator.accuracy(10)
     calculator.normalization("all")
     sphore = calculator.calculate(m2)
-    
+
     verbose = True
     if verbose:
         np.set_printoptions(precision=3, suppress=True)
@@ -748,12 +763,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-
-
-
-
-
-
-
-
