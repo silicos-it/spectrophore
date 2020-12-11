@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name = "uamc-spectrophore",
-    version = "1.0.1",
+    version = "1.1.0",
     author = "Hans De Winter",
     author_email = "hans.dewinter@uantwerpen.be",
     description = ("Python implementation of the spectrophore descriptor"),
