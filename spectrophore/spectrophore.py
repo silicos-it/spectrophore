@@ -5,7 +5,6 @@
 # of Antwerp
 
 __all__ = ['SpectrophoreCalculator']
-__version__ = "1.1.0"
 
 # Numba support
 from numba import njit
@@ -234,11 +233,11 @@ class SpectrophoreCalculator:
     # self.BOX[i][2]      z-coordinate of the i'th box point (1-12)
     
     ####################################################
-    def __init__(self, resolution=3.0, accuracy=20, stereo='none', normalization='none'):
+    def __init__(self, resolution=3.0, accuracy=20, stereo='none', normalization='all'):
 
         # Initiate PARMS
         self.PARMS = np.array([
-            0,      #  0 Normalisation
+            3,      #  0 Normalisation
             20,     #  1 Accuracy
             0,      #  2 Stereo
             0,      #  3 BeginProbe
@@ -743,7 +742,7 @@ def __processCommandline():
     parser.add_argument('-n', '--norm', 
                         dest = 'norm', 
                         help = 'normalization setting', 
-                        default = 'none', 
+                        default = 'all', 
                         choices = ['none','mean','all','std'])
     parser.add_argument('-s', '--stereo', 
                         dest = 'stereo', 
@@ -813,4 +812,3 @@ if __name__ == "__main__":
 		    if spec is not None: of.write("%s\n" % (spec))
 
     of.close()
-

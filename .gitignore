@@ -4,3 +4,4 @@ spectrophore/__pycache__/
 uamc_spectrophore.egg-info/
 spectrophore/spectrophore_notebook.ipynb
 spectrophore/.ipynb_checkpoints/
+__pycache__/
