@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
 
 from numba import cuda, float32
 import numpy as np
@@ -13,14 +9,6 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 
-# In[2]:
-
-
-print(cuda.gpus)
-
-
-# In[18]:
-
 
 @cuda.jit(device=True)
 def rotationMatrix(rm,c):
@@ -29,8 +17,6 @@ def rotationMatrix(rm,c):
     zr = c[0]*rm[2][0] + c[1]*rm[2][1] + c[2]*rm[2][2]
     return(xr,yr,zr)
 
-
-# In[19]:
 
 
 @cuda.jit()
@@ -189,7 +175,7 @@ def calculateEnergy(STEPSIZE, CO, RA, RES, PROBES, PROP, ENERGY):
                         
                 # Store in array
                 index = PROBES.shape[0] * prop + probe
-                cuda.atomic.min(ENERGY, index, v)
+                ENERGY[index] = cuda.min(ENERGY[index], v)
 
 
 # In[45]:
