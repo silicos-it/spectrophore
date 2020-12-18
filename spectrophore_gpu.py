@@ -175,10 +175,9 @@ def calculateEnergy(STEPSIZE, CO, RA, RES, PROBES, PROP, ENERGY):
                         
                 # Store in array
                 index = PROBES.shape[0] * prop + probe
-                ENERGY[index] = cuda.min(ENERGY[index], v)
+                ENERGY[index] = min(ENERGY[index], v)
 
 
-# In[45]:
 
 
 class SpectrophoreCalculator:
@@ -220,16 +219,11 @@ class SpectrophoreCalculator:
     #
     # #####################################
     # self.COORD_ORI[natoms][3]
-    # self.COORD_ROT[natoms][3]
     # #####################################
     #
     # self.COORD_ORI[i][0]      Original x-coordinate of atom i
     # self.COORD_ORI[i][1]      Original y-coordinate of atom i
     # self.COORD_ORI[i][2]      Original z-coordinate of atom i
-    #
-    # self.COORD_ROT[i][1]      Rotated x-coordinate of atom i
-    # self.COORD_ROT[i][1]      Rotated y-coordinate of atom i
-    # self.COORD_ROT[i][2]      Rotated z-coordinate of atom i
     #
     #
     # #####################################
@@ -257,26 +251,11 @@ class SpectrophoreCalculator:
     #
     #
     # #####################################
-    # self.ROTMAT[3][3]
-    # #####################################
-    #
-    # self.ROTMAT[0][0]     Rotation matrix element 0 x 0
-    #
-    #
-    # #####################################
     # self.PROBES[48][12]
     # #####################################
     #
     # self.PROBES[i][j]     Probe value of the i'th probe and the j'th box point (1-12)
     #
-    #
-    # #####################################
-    # self.BOX[number of box points][3]
-    # #####################################
-    #
-    # self.BOX[i][0]      x-coordinate of the i'th box point (1-12)
-    # self.BOX[i][1]      y-coordinate of the i'th box point (1-12)
-    # self.BOX[i][2]      z-coordinate of the i'th box point (1-12)
     
     ####################################################
     
@@ -431,7 +410,6 @@ class SpectrophoreCalculator:
         self.PROBES = self.PROBES.astype(np.float32)
         print("%d probes are used due to the imposed stereo flag" % (self.PARMS[6]))
 
-        # Setup the box
         self.__printParams()
 
 
@@ -780,29 +758,15 @@ class SpectrophoreCalculator:
             return(t.flatten())
 
 
-# In[46]:
 
 
-mol = Chem.MolFromSmiles("FC(Cl)(I)Br")
-mol = Chem.AddHs(mol)
-AllChem.EmbedMolecule(mol, randomSeed=1)
-calculator = SpectrophoreCalculator(accuracy = 20, normalization = 'none')
-spec = calculator.calculate(mol)
-np.set_printoptions(precision=3, suppress=True)
-print(spec)
-get_ipython().run_line_magic('timeit', 'spec = calculator.calculate(mol)')
+if __name__ == "__main__":
 
-
-# In[27]:
-
-
-spec = calculator.calculate(mol)
-print(spec)
-#%timeit spec = calculator.calculate(mol)
-
-
-# In[ ]:
-
-
-
+	mol = Chem.MolFromSmiles("FC(Cl)(I)Br")
+	mol = Chem.AddHs(mol)
+	AllChem.EmbedMolecule(mol, randomSeed=1)
+	calculator = SpectrophoreCalculator(accuracy = 20, normalization = 'none')
+	spec = calculator.calculate(mol)
+	np.set_printoptions(precision=3, suppress=True)
+	print(spec)
 
