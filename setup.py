@@ -34,7 +34,7 @@ setup(
     long_description = long_description,
 	long_description_content_type="text/markdown",
     url = "https://github.com/UAMCAntwerpen/spectrophore",
-	download_url = "https://github.com/UAMCAntwerpen/spectrophore/releases/tag/1.1.0",
+	download_url = "https://github.com/UAMCAntwerpen/spectrophore/releases/tag/1.2.0",
     packages = ['spectrophore'],
     package_dir = {'spectrophore': 'spectrophore'},
     package_data = {'spectrophore': ['images/*']},
