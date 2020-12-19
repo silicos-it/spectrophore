@@ -1,2 +1,2 @@
-__all__ = ["spectrophore", "spectrophore_gpu"]
-__version__ = "1.1.0"
+__all__ = ["spectrophore"]
+__version__ = "1.2.0"

@@ -1,124 +1,175 @@
 #!/usr/bin/env python
 
-# Copyright 2012 by Silicos-it, a division of Imacosi BVBA
-# Copyright 2020- by UAMC, the Medicinal Chemistry department of the University
-# of Antwerp
-
-__all__ = ['SpectrophoreCalculator']
-
-# Numba support
 from numba import njit
-
-# RDKit
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from rdkit import DataStructs
-from rdkit.Chem.Fingerprints import FingerprintMols
-
-# Numpy and SciPy
 import numpy as np
+import math
 import scipy
 import scipy.linalg
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
-# Math
-import math
+
+
+@njit(fastmath=True)
+def rotate(xx,xy,xz,yx,yy,yz,zx,zy,zz,c):
+    xr = c[0]*xx + c[1]*xy + c[2]*xz
+    yr = c[0]*yx + c[1]*yy + c[2]*yz
+    zr = c[0]*zx + c[1]*zy + c[2]*zz
+    return(xr,yr,zr)
 
 
 
 @njit(parallel=False, fastmath=True)
-def rotate(COORD_ORI, 
-           COORD_ROT, 
-           ANGLES, 
-           ROTMAT, 
-           ENERGY, 
-           MINENERGY, 
-           BOX, 
-           PROBES, 
-           RADIUS, 
-           PROP, 
-           RESOLUTION):
+def calculateEnergy(
+    COORD_ORI, 
+    COORD_ROT, 
+    STEPSIZE, 
+    ENERGY, 
+    MINENERGY,
+    BOX, 
+    PROBES, 
+    RADIUS, 
+    PROP, 
+    RESOLUTION):
+    
+    nFramesA = int(360 / STEPSIZE)
+    nFramesB = int(360 / STEPSIZE)
+    nFramesG = int(180 / STEPSIZE) + 1
 
-    count = 0
-    for a in range(len(ANGLES)):
+    # First run to initiate ENERGY array
+    px, py, pz = COORD_ROT[0] + RADIUS[0] + RESOLUTION
+    mx, my, mz = COORD_ROT[0] - RADIUS[0] - RESOLUTION
+    for atom in range(1, len(COORD_ROT)):
+        x, y, z = COORD_ROT[atom] + RADIUS[atom] + RESOLUTION
+        if x > px: px = x
+        if y > py: py = y
+        if z > pz: pz = z
+        x, y, z = COORD_ROT[atom] - RADIUS[atom] - RESOLUTION
+        if x < mx: mx = x
+        if y < my: my = y
+        if z < mz: mz = z
+    hx = (mx + px) / 2.0
+    hy = (my + py) / 2.0
+    hz = (mz + pz) / 2.0
+    BOX[0] =  hx,my,pz
+    BOX[1] =  px,hy,pz
+    BOX[2] =  hx,py,pz
+    BOX[3] =  mx,hy,pz
+    BOX[4] =  mx,my,hz
+    BOX[5] =  px,my,hz
+    BOX[6] =  mx,py,hz
+    BOX[7] =  px,py,hz
+    BOX[8] =  px,hy,mz
+    BOX[9] =  hx,my,mz
+    BOX[10] = mx,hy,mz
+    BOX[11] = hx,py,mz
 
-        # Rotate
-        ca = math.cos(ANGLES[a][0])
-        cb = math.cos(ANGLES[a][1])
-        cc = math.cos(ANGLES[a][2])
-        sa = math.sin(ANGLES[a][0])
-        sb = math.sin(ANGLES[a][1])
-        sc = math.sin(ANGLES[a][2])
-        casb = ca*sb
-        sasb = sa*sb
-        cacc = ca*cc
-        ROTMAT[0,0] = ca*cb
-        ROTMAT[0,1] = casb*sc - sa*cc
-        ROTMAT[0,2] = casb*cc + sa*sc
-        ROTMAT[1,0] = sa*cb
-        ROTMAT[1,1] = sasb*sc + cacc
-        ROTMAT[1,2] = sasb*cc - ca*sc
-        ROTMAT[2,0] = -sb
-        ROTMAT[2,1] = cb*sc
-        ROTMAT[2,2] = cacc
-        COORD_ROT = ROTMAT.dot(COORD_ORI.T).T
+    # Calculate energies
+    MINENERGY.fill(0.0)
+    
+    # Loop over each boxpoint (12 points)
+    for boxPoint in range(12):
 
-        # Update outer limits of molecule, taking into account atom radius and resolution
-        px, py, pz = COORD_ROT[0] + RADIUS[0] + RESOLUTION
-        mx, my, mz = COORD_ROT[0] - RADIUS[0] - RESOLUTION
-        for atom in range(1, len(COORD_ROT)):
-            x, y, z = COORD_ROT[atom] + RADIUS[atom] + RESOLUTION
-            if x > px: px = x
-            if y > py: py = y
-            if z > pz: pz = z
-            x, y, z = COORD_ROT[atom] - RADIUS[atom] - RESOLUTION
-            if x < mx: mx = x
-            if y < my: my = y
-            if z < mz: mz = z
-        hx = (mx + px) / 2.0
-        hy = (my + py) / 2.0
-        hz = (mz + pz) / 2.0
-        BOX[0] =  hx,my,pz
-        BOX[1] =  px,hy,pz
-        BOX[2] =  hx,py,pz
-        BOX[3] =  mx,hy,pz
-        BOX[4] =  mx,my,hz
-        BOX[5] =  px,my,hz
-        BOX[6] =  mx,py,hz
-        BOX[7] =  px,py,hz
-        BOX[8] =  px,hy,mz
-        BOX[9] =  hx,my,mz
-        BOX[10] = mx,hy,mz
-        BOX[11] = hx,py,mz
+        # Loop over each atom
+        for atom in range(len(COORD_ROT)):
+            
+            # Distance between boxpoint and atom
+            d = math.sqrt(np.sum((BOX[boxPoint] - COORD_ROT[atom])**2))
 
-        # Calculate energies
-        # Empty the energy arrays
-        ENERGY.fill(0.0)
+            # Loop over each probe
+            for probe in range(len(PROBES)):
 
-        # Loop over each boxpoint (12 points)
-        for boxPoint in range(len(BOX)):
+                # Loop over each property (4 properties)
+                for prop in range(4):
+                    index = len(PROBES)*prop + probe
+                    MINENERGY[index] += (PROP[atom][prop] * PROBES[probe][boxPoint]) / d
+            
+ 
+                    
+    # Loop over all angles
+    for ia in range(0, nFramesA):
+        for ib in range(0, nFramesB):
+            for ig in range(0, nFramesG):
 
-            # Loop over each atom
-            for atom in range(len(COORD_ROT)):
+                # Rotate
+                alpha = math.radians(float(ia * STEPSIZE))
+                beta = math.radians(float(ib * STEPSIZE))
+                gamma = math.radians(float(ig * STEPSIZE))
 
-                # Distance between boxpoint and atom
-                d = math.sqrt(np.sum((BOX[boxPoint] - COORD_ROT[atom])**2))
+                ca = math.cos(alpha)
+                cb = math.cos(beta)
+                cc = math.cos(gamma)
+                sa = math.sin(alpha)
+                sb = math.sin(beta)
+                sc = math.sin(gamma)
+                casb = ca*sb
+                sasb = sa*sb
+                cacc = ca*cc
+                xx = ca*cb
+                xy = casb*sc - sa*cc
+                xz = casb*cc + sa*sc
+                yx = sa*cb
+                yy = sasb*sc + cacc
+                yz = sasb*cc - ca*sc
+                zx = -sb
+                zy = cb*sc
+                zz = cacc
+        
+                for a in range(COORD_ORI.shape[0]):
+                    COORD_ROT[a] = rotate(xx,xy,xz,yx,yy,yz,zx,zy,zz, COORD_ORI[a])
 
-                # Loop over each probe
-                for probe in range(len(PROBES)):
+                # Update outer limits of molecule, taking into account atom radius and resolution
+                px, py, pz = COORD_ROT[0] + RADIUS[0] + RESOLUTION
+                mx, my, mz = COORD_ROT[0] - RADIUS[0] - RESOLUTION
+                for atom in range(1, len(COORD_ROT)):
+                    x, y, z = COORD_ROT[atom] + RADIUS[atom] + RESOLUTION
+                    if x > px: px = x
+                    if y > py: py = y
+                    if z > pz: pz = z
+                    x, y, z = COORD_ROT[atom] - RADIUS[atom] - RESOLUTION
+                    if x < mx: mx = x
+                    if y < my: my = y
+                    if z < mz: mz = z
+                hx = (mx + px) / 2.0
+                hy = (my + py) / 2.0
+                hz = (mz + pz) / 2.0
+                BOX[0] =  hx,my,pz
+                BOX[1] =  px,hy,pz
+                BOX[2] =  hx,py,pz
+                BOX[3] =  mx,hy,pz
+                BOX[4] =  mx,my,hz
+                BOX[5] =  px,my,hz
+                BOX[6] =  mx,py,hz
+                BOX[7] =  px,py,hz
+                BOX[8] =  px,hy,mz
+                BOX[9] =  hx,my,mz
+                BOX[10] = mx,hy,mz
+                BOX[11] = hx,py,mz
 
-                    # Loop over each property (4 properties)
-                    for prop in range(len(PROP[0])):
-                        index = len(PROBES)*prop + probe
-                        ENERGY[index] += (PROP[atom][prop] * PROBES[probe][boxPoint]) / d
+                # Calculate energies
+                # Loop over each boxpoint (12 points)
+                ENERGY.fill(0.0)
+                for boxPoint in range(12):
 
-        if count == 0:
-            MINENERGY = ENERGY
-            count += 1
-        else:
-            MINENERGY = np.minimum(ENERGY, MINENERGY)
+                    # Loop over each atom
+                    for atom in range(len(COORD_ROT)):
+
+                        # Distance between boxpoint and atom
+                        d = math.sqrt(np.sum((BOX[boxPoint] - COORD_ROT[atom])**2))
+
+                        # Loop over each probe
+                        for probe in range(len(PROBES)):
+
+                            # Loop over each property (4 properties)
+                            for prop in range(4):
+                                index = len(PROBES)*prop + probe
+                                ENERGY[index] += (PROP[atom][prop] * PROBES[probe][boxPoint]) / d
+
+                MINENERGY = np.minimum(ENERGY, MINENERGY)
 
     # Finish off
     return(-100 * MINENERGY)
+
 
 
 
@@ -157,8 +208,6 @@ class SpectrophoreCalculator:
     # self.PARMS[4]     EndProbe (integer, value itself is not included anymore)
     # self.PARMS[5]     Size of spectrophore (integer, equal to number of properties * number of probes)
     # self.PARMS[6]     Number of probes (integer, equal to EndProbe - BeginProbe)
-    # self.PARMS[7]     Number of properties (integer, equal to 4)
-    # self.PARMS[8]     Number of box points (integer, equal to 12)
     #
     #
     # #####################################
@@ -202,22 +251,6 @@ class SpectrophoreCalculator:
     #
     #
     # #####################################
-    # self.ANGLES[number of rotations][3]
-    # #####################################
-    #
-    # self.ANGLES[i][0]     Angle alpha of rotation i
-    # self.ANGLES[i][1]     Angle beta of rotation i
-    # self.ANGLES[i][2]     Angle gamma of rotation i
-    #
-    #
-    # #####################################
-    # self.ROTMAT[3][3]
-    # #####################################
-    #
-    # self.ROTMAT[0][0]     Rotation matrix element 0 x 0
-    #
-    #
-    # #####################################
     # self.PROBES[48][12]
     # #####################################
     #
@@ -231,8 +264,8 @@ class SpectrophoreCalculator:
     # self.BOX[i][0]      x-coordinate of the i'th box point (1-12)
     # self.BOX[i][1]      y-coordinate of the i'th box point (1-12)
     # self.BOX[i][2]      z-coordinate of the i'th box point (1-12)
-    
     ####################################################
+    
     def __init__(self, resolution=3.0, accuracy=20, stereo='none', normalization='all'):
 
         # Initiate PARMS
@@ -244,8 +277,6 @@ class SpectrophoreCalculator:
             12,     #  4 EndProbe
             4*12,   #  5 Size of spectrophore
             12,     #  6 Number of probes
-            4,      #  7 Number of properties
-            12      #  8 Number of box points
             ])
 
         # Initiate PROBES
@@ -364,12 +395,6 @@ class SpectrophoreCalculator:
         # Initiate accuracy
         if (180 % int(accuracy)) == 0: self.PARMS[1] = int(accuracy)
         else: raise ValueError('(180 modus accuracy) should be equal to 0')
-        self.ANGLES = []
-        for a in range(0, 360, self.PARMS[1]):
-            for b in range(0, 360, self.PARMS[1]):
-                for c in range(0, 180, self.PARMS[1]):
-                    self.ANGLES.append([math.radians(a), math.radians(b), math.radians(c)])
-        self.ANGLES = np.array(self.ANGLES)
 
         # Initiate stereo
         if   stereo.lower() == 'none':   self.PARMS[2:7] = [0, 0,12,4*12,12]
@@ -381,7 +406,7 @@ class SpectrophoreCalculator:
         print("%d probes are used due to the imposed stereo flag" % (self.PARMS[6]))
 
         # Setup the box
-        self.BOX = np.zeros(self.PARMS[8] * 3).reshape(self.PARMS[8], 3)
+        self.BOX = np.zeros(12 * 3).reshape(12, 3)
 
 
 
@@ -419,12 +444,6 @@ class SpectrophoreCalculator:
         if accuracy is None: return self.PARMS[1]
         elif (180 % accuracy) == 0: self.PARMS[1] = int(accuracy)
         else: raise ValueError('(180 modus accuracy) should be equal to 0')
-        self.ANGLES = []
-        for a in range(0, 360, self.PARMS[1]):
-            for b in range(0, 360, self.PARMS[1]):
-                for c in range(0, 180, self.PARMS[1]):
-                    self.ANGLES.append([math.radians(a), math.radians(b), math.radians(c)])
-        self.ANGLES = np.array(self.ANGLES)
 
 
 
@@ -459,19 +478,18 @@ class SpectrophoreCalculator:
         if nAtoms < 3: raise ValueError( '>=3 atoms are needed in molecule, only %d given' % (nAtoms))
 
         # Create the PROP and RADIUS array
-        self.PROP = np.zeros(nAtoms * self.PARMS[7]).reshape(nAtoms, self.PARMS[7])
+        self.PROP = np.zeros(nAtoms * 4).reshape(nAtoms, 4)
         self.RADIUS = np.zeros(nAtoms)
        
         # Create the COORD arrays
-        self.COORD_ORI = np.zeros(nAtoms * 3).reshape(nAtoms, 3)
-        self.COORD_ROT = np.zeros(nAtoms * 3).reshape(nAtoms, 3)
+        self.COORD_ORI = np.zeros(nAtoms * 3, dtype=np.float32).reshape(nAtoms, 3)
+        self.COORD_ROT = np.zeros(nAtoms * 3, dtype=np.float32).reshape(nAtoms, 3)
 
         # Atomic properties
         # [0]: atomic partial charges -> conformation dependent
         # [1]: atomic lipophilicities
         # [2]: atomic shape deviations -> conformation dependent
         # [3]: atomic electrophilicities -> conformation dependent
-
         chi = np.zeros(nAtoms)
         eta = np.zeros(nAtoms)
         A = np.zeros((nAtoms + 1, nAtoms + 1))
@@ -613,7 +631,7 @@ class SpectrophoreCalculator:
         for r in range(nAtoms):
             for i in range(r + 1, nAtoms):
                 d = np.sqrt(np.sum((self.COORD_ORI[r] - self.COORD_ORI[i])**2))
-                if d == 0: return(np.zeros(self.PARMS[6] * self.PARMS[7]))
+                if d == 0: return(np.zeros(self.PARMS[6] * 4))
                 A[r][i] = 0.529176 / d    # Angstrom to au
                 A[i][r] = A[r][i]
 
@@ -678,15 +696,14 @@ class SpectrophoreCalculator:
         self.COORD_ORI -= cog
              
         # Rotate
-        self.ENERGY = np.zeros(self.PARMS[6] * self.PARMS[7])
-        self.MINENERGY = np.zeros(self.PARMS[6] * self.PARMS[7])
-        self.ROTMAT = np.ndarray(shape=(3,3))
-        sphore = rotate(self.COORD_ORI,
+        self.ENERGY = np.zeros(self.PARMS[6] * 4, dtype=np.float32)
+        self.MINENERGY = np.zeros(self.PARMS[6] * 4, dtype=np.float32)
+        self.ROTMAT = np.ndarray(shape=(3,3), dtype=np.float32)
+        sphore = calculateEnergy(self.COORD_ORI,
                         self.COORD_ROT,
-                        self.ANGLES, 
-                        self.ROTMAT, 
+                        self.PARMS[1], 
                         self.ENERGY, 
-                        self.MINENERGY, 
+                        self.MINENERGY,
                         self.BOX,
                         self.PROBES,
                         self.RADIUS, 
@@ -696,17 +713,20 @@ class SpectrophoreCalculator:
         # Normalise
         if self.PARMS[0] == 0: return(sphore)
         else:
-            t = sphore.reshape(self.PARMS[7], self.PARMS[6])
+            t = sphore.reshape(4, self.PARMS[6])
             m = np.mean(t,1)
             s = np.std(t,1)
 
             if self.PARMS[0] == 1:
-                for r in range(self.PARMS[7]): t[r,:] = t[r,:] - m[r]
+                for r in range(4): t[r,:] = t[r,:] - m[r]
             elif self.PARMS[0] == 2:
-                for r in range(self.PARMS[7]): t[r,:] = t[r,:] / s[r]
+                for r in range(4): t[r,:] = t[r,:] / s[r]
             elif self.PARMS[0] == 3:
-                for r in range(self.PARMS[7]): t[r,:] = (t[r,:] - m[r]) / s[r]
+                for r in range(4): t[r,:] = (t[r,:] - m[r]) / s[r]
             return(t.flatten())
+
+
+
 
 
 
@@ -723,7 +743,8 @@ import argparse
 def __calculateSpectrophore(molecule, calculator, label):
 	spec = calculator.calculate(molecule)
 	if not np.all(spec): return None
-	specString = np.array2string(spec, max_line_width=1000, suppress_small=True, formatter={'float':lambda x: "%.5f" % x})
+	specString = np.array2string(spec, max_line_width=1000, suppress_small=True, formatter={'float':lambda x: 
+"%.5f" % x})
 	specString = label + " " + specString[1:-1]
 	return specString
  
@@ -778,7 +799,11 @@ def __processCommandline():
 
 
 
+
+#############################################################################################
 # Main
+#############################################################################################
+
 if __name__ == "__main__":
     args = __processCommandline()
 

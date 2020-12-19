@@ -70,7 +70,7 @@ Check the installation by opening a `python` session and entering:
 ```python
 >>> from spectrophore import spectrophore
 >>> spectrophore.__version__
-'1.1.0'
+'1.2.0'
 ```
 
 
@@ -140,18 +140,19 @@ Once you have installed all required tools and the `uamc-spectrophore` package, 
 Probes initialised: 48 number of probes in total
 12 probes are used due to the imposed stereo flag
 >>> calculator.calculate(mol)
-array([  1.40924502,   2.02165046,   1.60116436,   3.03469596,
-         2.41507857,   5.08722611,   2.28581149,   1.72504948,
-         3.43664362,   3.98129377,   5.09220782,   2.98450003,
-         0.64177653,   0.80248703,   4.87071751,   4.87075576,
-         2.87898807,   4.10470357,   1.94134559,   3.59602651,
-         4.90197306,   4.13912579,   4.53947967,   5.76613547,
-        44.7911691 ,  71.551798  , 106.82237198, 106.82056914,
-        49.73713312,  61.66294048,  23.50814953,  81.88458225,
-        77.47027889,  67.52201764,  57.44200226, 112.96883394,
-         0.67946222,   1.16072246,   2.47007244,   2.47010285,
-         1.02031206,   1.14833662,   0.51142376,   1.74329957,
-         1.80947322,   1.30153977,   1.24314761,   2.51634169])
+array([  1.409246  ,   2.021652  ,   1.6011626 ,   3.034698  ,
+         2.4150815 ,   5.0872273 ,   2.285813  ,   1.7250485 ,
+         3.436644  ,   4.0012817 ,   5.092206  ,   2.9844987 ,
+         0.6417792 ,   0.8024898 ,   4.8707156 ,   4.870761  ,
+         2.8789856 ,   4.104702  ,   1.9413302 ,   3.5960448 ,
+         4.9019723 ,   4.151822  ,   4.5394773 ,   5.766127  ,
+        44.79124   ,  71.551796  , 106.82244   , 106.82059   ,
+        49.73703   ,  61.662792  ,  23.50798   ,  81.88448   ,
+        77.47026   ,  67.52185   ,  57.44229   , 112.96884   ,
+         0.6794604 ,   1.1607243 ,   2.470075  ,   2.470103  ,
+         1.0203087 ,   1.1483352 ,   0.51142335,   1.7433033 ,
+         1.8094715 ,   1.3015395 ,   1.2431506 ,   2.5163455 ],
+      dtype=float32)
 ```
 
 In the example shown, the first three lines import the required modules: module `spectrophore` for the calculation of spectrophores, module `Chem` to generate a RDKit molecule from a smiles string, and module `AllChem` to generate a 3D-conformation from the molecule. Next, a molecule is created from a smiles string (line 4), and a conformation is then generated at the 6'th line after adding hydrogen atoms on the 5'th line. Finally, on lines 7 and 8, a  `SpectrophoreCalculator` object is generated and this object is then used to calculate a `spectrophore` descriptor (line 8), which consists in its default form of 4 * 12 numbers.
@@ -185,42 +186,36 @@ Probes initialised: 48 number of probes in total
 3
 >>> for i in range(len(cids)): calculator.calculate(aspirin, i)
 ...
-array([  2.96462985,   3.10789424,   2.92701307,   4.73480129,
-         7.50700756,   6.7752696 ,   4.69460938,   4.98432913,
-         6.56649102,   8.24607551,  10.16534187,   6.63522774,
-         4.85850723,   8.00209372,   6.81008801,   8.81632779,
-        15.71507174,  19.57181297,  10.92897534,  14.39582906,
-        17.00322879,  18.44783421,  25.71436069,  15.14679154,
-        72.95486358,  98.34447259, 169.3500435 , 182.39792935,
-       131.36937557, 131.15881671,  65.37049347, 130.03636659,
-       162.26216635, 149.89674859, 179.36647984, 198.56950862,
-         2.24635125,   3.15646299,   5.16635242,   5.61258427,
-         4.05891392,   4.40971427,   2.20378948,   4.40347814,
-         4.95831891,   5.23932504,   5.46180745,   6.26469512])
-array([  2.86370938,   3.11908114,   2.9662985 ,   4.77096845,
-         7.39310395,   7.31580198,   4.90127635,   5.10262032,
-         6.54896831,   8.57209314,  10.4252182 ,   6.48236019,
-         4.78703499,   8.0880778 ,   6.63117671,   8.7416472 ,
-        16.06779332,  19.49238064,  10.81952934,  14.26088777,
-        16.78952893,  18.33067086,  25.61064224,  14.16513261,
-        69.21313429,  96.67400647, 170.67855437, 184.54777123,
-       119.22878554, 135.03753518,  59.88890451, 119.4956808 ,
-       173.35099255, 145.16651515, 180.47798998, 187.6085509 ,
-         2.19625495,   3.10844742,   5.21008164,   5.67473542,
-         3.85068934,   4.43502882,   2.10609961,   4.09882807,
-         5.17161401,   5.10314635,   5.38430731,   5.95512953])
-array([  3.03098509,   3.43547073,   2.87682353,   4.70654369,
-         7.55577361,   6.44795641,   4.55689165,   4.95357717,
-         6.48715747,   8.70650427,   8.51842619,   6.36629528,
-         4.92845349,   9.35540521,   6.61796667,   8.52382953,
-        15.45974411,  19.28477464,  10.79250878,  13.99183075,
-        16.79567856,  18.5976027 ,  24.08439853,  13.11722779,
-        77.63923352, 120.10923123, 169.49598685, 166.18620528,
-       131.14177781, 144.46258022,  72.46953874, 149.309445  ,
-       140.3545568 , 155.59245541, 130.84980794, 174.86938246,
-         2.44134022,   3.88011509,   5.14895684,   4.83463651,
-         4.07958148,   4.01362515,   2.4914236 ,   4.58399527,
-         4.27013576,   5.33584991,   4.63150519,   5.6371141 ])
+array([  2.964628 ,   3.1078947,   2.927014 ,   4.7348037,   7.507005 ,
+         6.7752705,   4.694607 ,   4.9843326,   6.566493 ,   8.246073 ,
+        10.165346 ,   6.63523  ,   4.858508 ,   8.002102 ,   6.8100824,
+         8.816333 ,  15.715073 ,  19.571812 ,  10.928973 ,  14.395827 ,
+        17.003227 ,  18.447824 ,  25.714355 ,  15.146796 ,  72.9549   ,
+        98.34449  , 169.34996  , 182.39804  , 131.36954  , 131.15866  ,
+        65.37012  , 130.0362   , 162.26236  , 149.89626  , 179.36638  ,
+       198.5693   ,   2.2463505,   3.1564593,   5.1663566,   5.612588 ,
+         4.058919 ,   4.409714 ,   2.2037854,   4.4034805,   4.9583206,
+         5.239315 ,   5.461795 ,   6.264689 ], dtype=float32)
+array([  2.863708 ,   3.1190798,   2.9663007,   4.770968 ,   7.393107 ,
+         7.3158054,   4.9012723,   5.10262  ,   6.548969 ,   8.572092 ,
+        10.425214 ,   6.4823613,   4.787042 ,   8.08808  ,   6.631177 ,
+         8.741646 ,  16.067795 ,  19.49238  ,  10.819519 ,  14.260894 ,
+        16.789541 ,  18.33067  ,  25.610632 ,  14.279321 ,  69.21315  ,
+        96.67396  , 170.67822  , 184.54782  , 119.22876  , 135.03757  ,
+        59.888947 , 119.49558  , 173.35124  , 145.16624  , 180.47777  ,
+       187.60854  ,   2.1962543,   3.108443 ,   5.2100787,   5.6747303,
+         3.8506951,   4.435027 ,   2.1061015,   4.0988173,   5.171605 ,
+         5.103154 ,   5.384299 ,   5.955127 ], dtype=float32)
+array([  3.0309825,   3.435472 ,   2.8768196,   4.706544 ,   7.5557814,
+         6.4479575,   4.55689  ,   4.953575 ,   6.4871607,   8.706506 ,
+         8.518427 ,   6.3662963,   4.9284625,   9.355401 ,   6.6179686,
+         8.523829 ,  15.459739 ,  19.284777 ,  10.792515 ,  13.991817 ,
+        16.795666 ,  18.597605 ,  24.084375 ,  13.117221 ,  77.639145 ,
+       120.10927  , 169.49625  , 166.18648  , 131.14139  , 144.46242  ,
+        72.4695   , 149.30933  , 140.35475  , 155.59204  , 130.84991  ,
+       174.86932  ,   2.4413445,   3.8801153,   5.1489463,   4.834638 ,
+         4.0795846,   4.013626 ,   2.4914305,   4.5840054,   4.270138 ,
+         5.335861 ,   4.6315002,   5.6371183], dtype=float32)
 ```
 
 One can easily visualise `spectrophores` by plotting the actual values. For example, consider the following snippet:
@@ -233,14 +228,21 @@ One can easily visualise `spectrophores` by plotting the actual values. For exam
 >>> spectrophores = []
 >>> for cid in cids: spectrophores.append(calculator.calculate(mol, cid))
 ...
->>> for i in range(3): plt.plot(range(1,49), spectrophores[i], label='Conf %d' % (i+1))
+>>> for i in range(len(spectrophores)): plt.plot(range(1,49), spectrophores[i], label='Conf %d' % (i+1))
 ...
-[<matplotlib.lines.Line2D object at 0x7faf42154be0>]
-[<matplotlib.lines.Line2D object at 0x7faf420db880>]
-[<matplotlib.lines.Line2D object at 0x7faf420df5e0>]
+[<matplotlib.lines.Line2D object at 0x7f989dc3f4f0>]
+[<matplotlib.lines.Line2D object at 0x7f989dc3f850>]
+[<matplotlib.lines.Line2D object at 0x7f989dc3fbb0>]
+[<matplotlib.lines.Line2D object at 0x7f989dc3ff10>]
+[<matplotlib.lines.Line2D object at 0x7f989dc512b0>]
+[<matplotlib.lines.Line2D object at 0x7f989dc51610>]
+[<matplotlib.lines.Line2D object at 0x7f989dc51970>]
+[<matplotlib.lines.Line2D object at 0x7f989dc51cd0>]
+[<matplotlib.lines.Line2D object at 0x7f989dc5e070>]
+[<matplotlib.lines.Line2D object at 0x7f989dc5e3d0>]
 >>> plt.legend(loc='upper left')
+<matplotlib.legend.Legend object at 0x7f9899470e80>
 >>> plt.grid()
->>> plt.suptitle("Spectrophores calculated for three molecular conformations")
 >>> plt.savefig("spectrophore/images/exampleplot1.png")
 ```
 
@@ -269,7 +271,7 @@ Similarly, one can easily compare the `spectrophores` from two different molecul
 >>> plt.savefig("spectrophore/images/exampleplot2.png")
 >>> from scipy.spatial import distance
 >>> distance.euclidean(spectrophores[0],spectrophores[1])
-2060.6541853196104
+2060.65478515625
 ```
 
 ![Two molecules](spectrophore/images/exampleplot2.png)
@@ -291,20 +293,20 @@ The `resolution()` method controls the smallest distance between the molecule an
 Probes initialised: 48 number of probes in total
 12 probes are used due to the imposed stereo flag
 >>> print(calculator.calculate(mol)[0])
-2.986999574231686
+2.9869986
 >>> calculator = spectrophore.SpectrophoreCalculator(normalization='none', resolution = 3.0)
 Probes initialised: 48 number of probes in total
 12 probes are used due to the imposed stereo flag
 >>> print(calculator.calculate(mol)[0])
-2.986999574231686
+2.9869986
 >>> calculator = spectrophore.SpectrophoreCalculator(normalization='none', resolution = 5.0)
 Probes initialised: 48 number of probes in total
 12 probes are used due to the imposed stereo flag
 >>> print(calculator.calculate(mol)[0])
-1.3418808308942443
+1.341883
 >>> calculator.resolution(10.0)
 >>> print(calculator.calculate(mol)[0])
-0.33471846966269136
+0.3347178
 ```
 
 The larger the resolution value (e.g. 10.0 *versus* 3.0 A), the smaller the interaction energies and corresponding `spectrophore` values.
@@ -326,19 +328,19 @@ The `accuracy()` method controls the angular stepsize by which the molecule is r
 Probes initialised: 48 number of probes in total
 12 probes are used due to the imposed stereo flag
 >>> print(calculator.calculate(mol)[0])
-2.986999574231686
+2.9869986
 >>> calculator = spectrophore.SpectrophoreCalculator(normalization = 'none')
 Probes initialised: 48 number of probes in total
 12 probes are used due to the imposed stereo flag
 >>> print(calculator.calculate(mol)[0])
-2.986999574231686
+2.9869986
 >>> calculator = spectrophore.SpectrophoreCalculator(accuracy = 2.0, normalization = 'none')
 Probes initialised: 48 number of probes in total
 Only using 12 probes
->>> print(calculator.calculate(mol)[0])
-3.031550037295078
->>> 100.0 * (3.031550037295078 - 2.986999574231686) / 3.031550037295078
-1.469560538843759
+>>> print(calculator.calculate(mol)[0])    # Takes some time
+3.0315504
+>>> 100.0 * (3.0315504 - 2.9869986) / 3.0315504
+1.469604463775361
 ```
 
 Calling the `accuracy()` method without an argument returns the current accuracy value:
@@ -365,31 +367,31 @@ The default value is "all".
 >>> calculator.normalization("none")
 >>> spec = calculator.calculate(mol)
 >>> print(spec[:12])
-[2.98699957 2.70232233 1.80297059 4.46890589 7.37554531 7.25227472
- 4.11233399 4.05599379 5.90845924 8.56495646 9.32825451 6.22968839]
+[2.9869986 2.7023215 1.8029709 4.468909  7.3755445 7.2522745 4.1123347
+ 4.0559936 5.9084597 8.5649605 9.328256  6.22969  ]
 >>> sum(spec[:12])
-64.78870479507654
+64.78871297836304
 >>> calculator.normalization("mean")
 >>> spec = calculator.calculate(mol)
 >>> print(spec[:12])
-[-2.41205916 -2.69673641 -3.59608814 -0.93015285  1.97648657  1.85321599
- -1.28672475 -1.34306494  0.5094005   3.16589773  3.92919578  0.83062966]
+[-2.4120607  -2.6967378  -3.5960884  -0.9301505   1.9764853   1.8532152
+ -1.2867246  -1.3430657   0.50940037  3.1659012   3.9291964   0.8306308 ]
 >>> sum(spec[:12])
--1.7763568394002505e-15
+1.430511474609375e-06
 >>> calculator.normalization("std")
 >>> spec = calculator.calculate(mol)
 >>> print(spec[:12])
-[1.2924119  1.16923804 0.78010746 1.9336016  3.19124336 3.13790677
- 1.77932044 1.75494322 2.55646607 3.70587655 4.03613957 2.69545517]
+[1.2924111 1.1692374 0.7801074 1.9336023 3.1912422 3.1379058 1.7793202
+ 1.7549427 2.5564656 3.7058773 4.036139  2.695455 ]
 >>> sum(spec[:12])
-28.03271016057212
+28.032706141471863
 >>> calculator.normalization("all")
 >>> spec = calculator.calculate(mol)
 >>> print(spec[:12])
-[-1.04364728 -1.16682114 -1.55595172 -0.40245758  0.85518418  0.80184759
- -0.55673874 -0.58111596  0.22040689  1.36981737  1.70008039  0.35939599]
+[-1.0436476  -1.1668214  -1.5559514  -0.40245646  0.85518336  0.80184704
+ -0.5567385  -0.58111614  0.22040677  1.3698184   1.7000802   0.35939637]
 >>> sum(spec[:12])
-0.0
+6.854534149169922e-07
 ```
 
 Using a normalization over 'all' makes it more easier to compare `spectrophores`  between molecules:
@@ -410,11 +412,12 @@ Using a normalization over 'all' makes it more easier to compare `spectrophores`
 [<matplotlib.lines.Line2D object at 0x7faf420df520>]
 [<matplotlib.lines.Line2D object at 0x7faf420df4c0>]
 >>> plt.legend()
+<matplotlib.legend.Legend object at 0x7f989ed85820>
 >>> plt.grid()
 >>> plt.savefig("spectrophore/images/exampleplot3.png")
 >>> from scipy.spatial import distance
 >>> distance.euclidean(spectrophores[0],spectrophores[1])
-8.374486663568376
+8.374645233154297
 ```
 
 ![Two molecules](spectrophore/images/exampleplot3.png)
@@ -430,21 +433,28 @@ The same holds true when comparing `spectrophores` from different conformations:
 >>> calculator.normalization("all")
 >>> for cid in cids: spectrophores.append(calculator.calculate(mol, cid))
 ...
->>> for i in range(3): plt.plot(range(1,49), spectrophores[i], label='Conf %d' % (i+1))
+>>> for i in range(len(spectrophores)): plt.plot(range(1,49), spectrophores[i], label='Conf %d' % (i+1))
 ...
-[<matplotlib.lines.Line2D object at 0x7faf42154be0>]
-[<matplotlib.lines.Line2D object at 0x7faf420db880>]
-[<matplotlib.lines.Line2D object at 0x7faf420df5e0>]
+[<matplotlib.lines.Line2D object at 0x7f989f9cc070>]
+[<matplotlib.lines.Line2D object at 0x7f989f9cc3d0>]
+[<matplotlib.lines.Line2D object at 0x7f989f9cc730>]
+[<matplotlib.lines.Line2D object at 0x7f989f9cca90>]
+[<matplotlib.lines.Line2D object at 0x7f989f9ccdf0>]
+[<matplotlib.lines.Line2D object at 0x7f989f9d8190>]
+[<matplotlib.lines.Line2D object at 0x7f989f9d84f0>]
+[<matplotlib.lines.Line2D object at 0x7f989f9d8850>]
+[<matplotlib.lines.Line2D object at 0x7f989f9d8bb0>]
+[<matplotlib.lines.Line2D object at 0x7f989f9d8f10>]
 >>> plt.legend(loc='upper left')
->>> plt.suptitle("Spectrophores calculated for three molecular conformations")
+<matplotlib.legend.Legend object at 0x7f989f948e50>
 >>> plt.savefig("spectrophore/images/exampleplot4.png")
 >>> from scipy.spatial import distance
 >>> distance.euclidean(spectrophores[0],spectrophores[1])
-5.974719598137992
+5.974719524383545
 >>> distance.euclidean(spectrophores[0],spectrophores[2])
-6.081919289368958
+6.081935882568359
 >>> distance.euclidean(spectrophores[1],spectrophores[2])
-3.7508923029079013
+3.7508902549743652
 ```
 
 ![Three conformations](spectrophore/images/exampleplot4.png)
@@ -495,7 +505,8 @@ meaning that the first *n* values (with *n* being the number of probes) are calc
 
 ## 4. Release updates
 
-- 1.0.1: First official release on PyPi
+- 1.2.0:
+    - Switched to numpy.float32 type to achieve major speedup
 
 - 1.1.0:
     - Updated and optimised the NumPy code
@@ -503,6 +514,9 @@ meaning that the first *n* values (with *n* being the number of probes) are calc
     - Introduced Numba
     - Made the 'all' normalization method the default one
     - Added a test suite 
+
+- 1.0.1: First official release on PyPi
+    
 
 
 
