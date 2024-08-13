@@ -6,6 +6,7 @@ import math
 import scipy
 import scipy.linalg
 from rdkit import Chem
+import concurrent.futures
 from rdkit.Chem import AllChem
 
 
@@ -511,7 +512,7 @@ class SpectrophoreCalculator:
                             self.PROP[a][1] = -0.374
                             break
                 else:
-                    prop[a][1] = -0.175
+                    self.PROP[a][1] = -0.175
             elif n ==  3:   # Li
                 self.RADIUS[a] = 1.82
                 eta[a] = +0.32966
@@ -741,19 +742,22 @@ import argparse
 
 # Function to calculate spectrophores
 def __calculateSpectrophore(molecule, calculator, label):
-	spec = calculator.calculate(molecule)
-	if not np.all(spec): return None
-	specString = np.array2string(spec, max_line_width=1000, suppress_small=True, formatter={'float':lambda x: 
-"%.5f" % x})
-	specString = label + " " + specString[1:-1]
-	return specString
- 
+    try:
+        spec = calculator.calculate(molecule)
+        if not np.all(spec): return None
+        specString = np.array2string(spec, max_line_width=1000, suppress_small=True, formatter={'float':lambda x: "%.5f" % x})
+        specString = label + " " + specString[1:-1]
+        return specString
+    except ValueError as error:
+        print("Skipping molecule ", label, "  ", type(error).__name__, ": ", error)
+        return None
+
 
 # Function to check the value of the resolution command-line argument
 def __check_resolution(value):
-	v = float(value)
-	if v <= 0: raise argparse.ArgumentTypeError("should be larger than 0")
-	return v
+    v = float(value)
+    if v <= 0: raise argparse.ArgumentTypeError("should be larger than 0")
+    return v
 
 
 # Function to parse the command-line arguments
@@ -807,7 +811,7 @@ def __processCommandline():
 if __name__ == "__main__":
     args = __processCommandline()
 
-    calculator = spectrophore.SpectrophoreCalculator(normalization = args.norm, 
+    calculator = SpectrophoreCalculator(normalization = args.norm,
                                         stereo = args.stereo, 
                                         accuracy = args.accuracy, 
                                         resolution = args.resolution)
@@ -822,7 +826,7 @@ if __name__ == "__main__":
     of = open(args.outfile, 'w')
     mw = None
     if args.max_workers > 0: mw = args.max_workers
-    with futures.ProcessPoolExecutor(max_workers = mw) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers = mw) as executor:
 	    jobs = []
 	    for mol in supplier:
 	    	if mol:

@@ -351,8 +351,30 @@ class Tests(unittest.TestCase):
         1.2129686 ,  1.8534594 ,  0.6795451 ], dtype=np.float32)
         np.testing.assert_allclose(spec, refe, rtol=TOLERANCE)
         
-        
-        
+
+    def test_spectrophore_valueerror_natoms(self):
+        """
+        Test the error raised when less than 3 atoms are present in the molecule
+        """
+        mol = Chem.MolFromSmiles("Br")
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMolecule(mol, randomSeed=1)
+        calculator = spectrophore.SpectrophoreCalculator(accuracy=20, normalization="all", stereo="none", resolution=5.0)
+        with self.assertRaises(ValueError) as error:
+            spec = calculator.calculate(mol)
+        self.assertEqual(str(error.exception), ">=3 atoms are needed in molecule, only 2 given")
+
+
+    def test_spectrophore_valueerror_conformers(self):
+        """
+        Test the error raised when no conformation is available
+        """
+        mol = Chem.MolFromSmiles("c1ccc(CCN)cc1")
+        calculator = spectrophore.SpectrophoreCalculator(accuracy=20, normalization="all", stereo="none", resolution=5.0)
+        with self.assertRaises(ValueError) as error:
+            spec = calculator.calculate(mol)
+        self.assertEqual(str(error.exception), "At least 1 conformation(s) should be present, 0 found")
+
 
 if __name__ == '__main__':
     unittest.main()
